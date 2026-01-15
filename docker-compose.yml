@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostGIS
+  postgis:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: datazone_postgis
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-datazone_energy}
+      POSTGRES_USER: ${POSTGRES_USER:-datazone_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datazone_pass_dev}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-scram-sha-256}
+      # Otimizações de performance
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=pt_BR.UTF-8"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Persistência de dados
+      - postgres_data:/var/lib/postgresql/data
+      # Scripts de inicialização
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      # Backup (opcional)
+      - ./backups:/backups
+    networks:
+      - datazone_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-datazone_user} -d ${POSTGRES_DB:-datazone_energy}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # Otimizações de memória MÍNIMA para desenvolvimento
+    shm_size: 128mb
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    command: >
+      postgres -c shared_buffers=128MB -c effective_cache_size=512MB -c maintenance_work_mem=64MB -c checkpoint_completion_target=0.9 -c wal_buffers=8MB -c default_statistics_target=50 -c work_mem=8MB -c min_wal_size=256MB -c max_wal_size=512MB -c max_connections=50
+
+  # API Backend FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: datazone_api
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-datazone_user}:${POSTGRES_PASSWORD:-datazone_pass_dev}@postgis:5432/${POSTGRES_DB:-datazone_energy}
+      ASYNC_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-datazone_user}:${POSTGRES_PASSWORD:-datazone_pass_dev}@postgis:5432/${POSTGRES_DB:-datazone_energy}
+
+      # API Settings
+      API_V1_PREFIX: /api/v1
+      PROJECT_NAME: "DataZone Energy API"
+      DEBUG: ${DEBUG:-True}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+
+      # CORS
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-["http://localhost:3000","http://localhost:5173"]}
+
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-dev_secret_key_change_in_production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+
+      # GIS Settings
+      DEFAULT_CRS: EPSG:4326
+      SIMPLIFY_TOLERANCE: ${SIMPLIFY_TOLERANCE:-0.001}
+
+      # Performance
+      MAX_CONNECTIONS_POOL: ${MAX_CONNECTIONS_POOL:-20}
+      CACHE_TTL: ${CACHE_TTL:-300}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Hot reload em desenvolvimento
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - datazone_network
+    depends_on:
+      postgis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    # Limites de recursos OTIMIZADOS para memória mínima
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # PgAdmin (opcional, para desenvolvimento)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: datazone_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@datazone.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - datazone_network
+    depends_on:
+      - postgis
+    restart: unless-stopped
+    profiles:
+      - dev
+
+networks:
+  datazone_network:
+    driver: bridge
+    name: datazone_network
+
+volumes:
+  postgres_data:
+    name: datazone_postgres_data
+  pgadmin_data:
+    name: datazone_pgadmin_data

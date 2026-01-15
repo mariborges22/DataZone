@@ -1,0 +1,128 @@
+"""
+Configuração do banco de dados PostgreSQL/PostGIS
+Suporte para conexões síncronas e assíncronas
+"""
+
+from typing import AsyncGenerator
+from sqlalchemy import create_engine, event
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.pool import NullPool
+from geoalchemy2 import Geometry
+
+from app.config import settings
+
+
+# Base para modelos SQLAlchemy
+Base = declarative_base()
+
+
+# ============================================
+# Engine Síncrono (para scripts de migração)
+# ============================================
+sync_engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=settings.MAX_CONNECTIONS_POOL,
+    max_overflow=10,
+    echo=False,  # SEGURANÇA: Nunca logar SQL queries
+)
+
+# Session síncrona
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=sync_engine
+)
+
+
+# ============================================
+# Engine Assíncrono (para API)
+# ============================================
+async_engine = create_async_engine(
+    settings.ASYNC_DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=settings.MAX_CONNECTIONS_POOL,
+    max_overflow=10,
+    echo=False,  # SEGURANÇA: Nunca logar SQL queries
+)
+
+# Session assíncrona
+AsyncSessionLocal = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
+
+
+# ============================================
+# Dependency Injection para FastAPI
+# ============================================
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Dependency que fornece sessão de banco de dados assíncrona
+    Uso: db: AsyncSession = Depends(get_db)
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+def get_sync_db():
+    """
+    Dependency para sessão síncrona (scripts)
+    """
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+# ============================================
+# Funções auxiliares
+# ============================================
+async def init_db() -> None:
+    """
+    Inicializa o banco de dados (cria tabelas se não existirem)
+    """
+    async with async_engine.begin() as conn:
+        # Importar todos os modelos aqui para garantir que sejam registrados
+        from app.models import subestacao, linha_transmissao, fibra_optica
+        
+        # Criar todas as tabelas
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def close_db() -> None:
+    """
+    Fecha conexões com o banco de dados
+    """
+    await async_engine.dispose()
+
+
+def check_db_connection() -> bool:
+    """
+    Verifica se a conexão com o banco está funcionando
+    """
+    try:
+        from sqlalchemy import text
+        with sync_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception as e:
+        print(f"Database connection check failed: {e}")
+        return False
+

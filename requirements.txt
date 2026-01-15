@@ -1,0 +1,66 @@
+# FastAPI e servidor ASGI
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Banco de dados
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+sqlalchemy==2.0.25
+geoalchemy2==0.14.3
+
+# Bibliotecas GIS
+geopandas==0.14.2
+shapely==2.0.2
+fiona==1.9.5
+pyproj==3.6.1
+rtree==1.1.0
+
+# NOTA: GDAL é instalado via apt-get no Dockerfile (gdal-bin e libgdal-dev)
+# Não instalar via pip para evitar problemas de compilação com Python 3.11
+
+
+# Processamento de dados
+pandas==2.1.4
+numpy==1.26.3
+
+# Validação e serialização
+geojson-pydantic==1.0.1
+
+# HTTP e requisições
+httpx==0.26.0
+aiofiles==23.2.1
+
+# Utilitários
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# Logging e monitoramento
+loguru==0.7.2
+
+# Segurança
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-decouple==3.8
+cryptography==41.0.7
+
+# Cache (opcional, para otimização)
+redis==5.0.1
+hiredis==2.3.2
+
+# Testes (desenvolvimento)
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+httpx==0.26.0
+
+# Qualidade de código (desenvolvimento)
+black==23.12.1
+flake8==7.0.0
+isort==5.13.2
+mypy==1.8.0
+
+# Documentação
+mkdocs==1.5.3
+mkdocs-material==9.5.3

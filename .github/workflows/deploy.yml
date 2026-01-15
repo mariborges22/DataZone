@@ -1,0 +1,210 @@
+name: CI/CD Pipeline - DataZone Energy
+
+on:
+  push:
+    branches: [main, staging, develop]
+  pull_request:
+    branches: [main, staging]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ========================================
+  # JOB 1: Testes Automatizados
+  # ========================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+      
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+          ASYNC_DATABASE_URL: postgresql+asyncpg://test_user:test_pass@localhost:5432/test_db
+          SECRET_KEY: test_secret_key_for_ci
+          ENVIRONMENT: test
+        run: |
+          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  # ========================================
+  # JOB 2: Linting e Code Quality
+  # ========================================
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install linters
+        run: |
+          pip install black flake8 isort bandit safety
+      
+      - name: Check code formatting (Black)
+        run: black --check app/ scripts/
+      
+      - name: Check import sorting (isort)
+        run: isort --check-only app/ scripts/
+      
+      - name: Lint code (Flake8)
+        run: flake8 app/ scripts/ --max-line-length=100 --exclude=__pycache__
+      
+      - name: Security check (Bandit)
+        run: bandit -r app/ -ll
+      
+      - name: Check dependencies (Safety)
+        run: safety check --json || true
+
+  # ========================================
+  # JOB 3: Build Docker Image
+  # ========================================
+  build:
+    name: Build Docker Image
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: datazone-energy:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ========================================
+  # JOB 4: Deploy to Staging
+  # ========================================
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      
+      - name: Deploy to Railway (Staging)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
+        run: |
+          railway up --service datazone-api-staging
+      
+      - name: Wait for deployment
+        run: sleep 30
+      
+      - name: Health check
+        run: |
+          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
+      
+      - name: Notify on Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # ========================================
+  # JOB 5: Deploy to Production
+  # ========================================
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      
+      - name: Deploy to Railway (Production)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROD_TOKEN }}
+        run: |
+          railway up --service datazone-api-production
+      
+      - name: Wait for deployment
+        run: sleep 30
+      
+      - name: Health check
+        run: |
+          curl -f ${{ secrets.PRODUCTION_URL }}/health || exit 1
+      
+      - name: Notify on Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: '🚀 Production deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      
+      - name: Create Sentry release
+        if: success()
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: datazone
+          SENTRY_PROJECT: datazone-energy
+        with:
+          environment: production
+          version: ${{ github.sha }}
