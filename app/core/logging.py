@@ -1,17 +1,35 @@
-"""
-Configuração atualizada de logging com suporte a múltiplos ambientes
-"""
-
+import logging
 import sys
 from loguru import logger
 from app.config import settings
+
+
+class InterceptHandler(logging.Handler):
+    """
+    Handler para interceptar logs do logging padrão do Python e redirecionar para o Loguru.
+    Veja: https://loguru.readthedocs.io/en/stable/resources/recipes.html#intercepting-standard-logging-messages-on-the-fly
+    """
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def setup_logging():
     """
     Configura o sistema de logging baseado no ambiente
     """
-    # Remover handlers padrão
+    # Remover handlers padrão do Loguru
     logger.remove()
     
     # Determinar nível de log baseado no ambiente
@@ -57,40 +75,25 @@ def setup_logging():
         f"logs/{settings.ENVIRONMENT}_{{time:YYYY-MM-DD}}.log",
         format=log_format,
         level=log_level,
-        rotation="00:00",  # Nova arquivo à meia-noite
-        retention=retention_days,
-        compression="zip",
-        backtrace=True,
-        diagnose=settings.ENVIRONMENT != "production",  # Apenas em dev/staging
-    )
-    
-    # Arquivo de erros separado (todos os ambientes)
-    logger.add(
-        f"logs/{settings.ENVIRONMENT}_errors_{{time:YYYY-MM-DD}}.log",
-        format=log_format,
-        level="ERROR",
         rotation="00:00",
-        retention="90 days",  # Manter erros por mais tempo
+        retention=retention_days,
         compression="zip",
         backtrace=True,
         diagnose=settings.ENVIRONMENT != "production",
     )
     
-    # Arquivo de erros críticos (apenas produção)
-    if settings.ENVIRONMENT == "production":
-        logger.add(
-            "logs/critical_{time:YYYY-MM-DD}.log",
-            format=log_format,
-            level="CRITICAL",
-            rotation="00:00",
-            retention="180 days",  # 6 meses
-            compression="zip",
-        )
+    # Interceptar logs de bibliotecas (incluindo uvicorn, sqlalchemy, etc)
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
     
-    logger.info(f"Logging configurado - Ambiente: {settings.ENVIRONMENT} | Nível: {log_level}")
+    # Silenciar logs muito ruidosos em níveis inferiores a WARNING
+    logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+    logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+    
+    logger.info(f"Logging unificado configurado - Ambiente: {settings.ENVIRONMENT} | Nível: {log_level}")
     
     return logger
 
 
 # Instância global do logger
 app_logger = setup_logging()
+

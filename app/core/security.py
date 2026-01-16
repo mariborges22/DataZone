@@ -7,7 +7,7 @@ import re
 from typing import Any, Optional
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import os
 
@@ -25,7 +25,7 @@ class SecurityManager:
     def _init_encryption(self):
         """Inicializa sistema de criptografia"""
         # Derivar chave de criptografia a partir da SECRET_KEY
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'datazone_energy_salt',  # Em produção, usar salt único e seguro
