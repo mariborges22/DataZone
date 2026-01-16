@@ -2,8 +2,9 @@
 Modelo SQLAlchemy para Subestações
 """
 
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, func
 from geoalchemy2 import Geometry
+from sqlalchemy import Column, DateTime, Integer, Numeric, String, func
+
 from app.core.database import Base
 
 

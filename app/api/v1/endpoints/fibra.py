@@ -4,19 +4,16 @@ Retorna dados em formato GeoJSON
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from geoalchemy2.functions import (
-    ST_AsGeoJSON,
-    ST_Simplify,
-    ST_MakeEnvelope,
-    ST_Intersects,
-)
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from geoalchemy2.functions import (ST_AsGeoJSON, ST_Intersects,
+                                   ST_MakeEnvelope, ST_Simplify)
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
 from app.core.database import get_db
 from app.models.fibra_optica import FibraOptica
-from app.config import settings
 
 router = APIRouter()
 

@@ -3,10 +3,11 @@ Configurações da aplicação usando Pydantic Settings
 Carrega variáveis de ambiente do arquivo .env
 """
 
+import json
 from typing import List
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import json
 
 
 class Settings(BaseSettings):

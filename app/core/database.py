@@ -4,14 +4,15 @@ Suporte para conexões síncronas e assíncronas
 """
 
 from typing import AsyncGenerator
-from sqlalchemy import create_engine, event
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import NullPool
+
 from geoalchemy2 import Geometry
+from sqlalchemy import create_engine, event
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
-
 
 # Base para modelos SQLAlchemy
 Base = declarative_base()
@@ -96,7 +97,7 @@ async def init_db() -> None:
     """
     async with async_engine.begin() as conn:
         # Importar todos os modelos aqui para garantir que sejam registrados
-        from app.models import subestacao, linha_transmissao, fibra_optica
+        from app.models import fibra_optica, linha_transmissao, subestacao
 
         # Criar todas as tabelas
         await conn.run_sync(Base.metadata.create_all)

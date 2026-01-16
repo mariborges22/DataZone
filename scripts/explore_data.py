@@ -5,9 +5,10 @@ Use este script para descobrir a estrutura dos seus arquivos antes de processar
 
 import sys
 from pathlib import Path
+
+import fiona
 import geopandas as gpd
 import pandas as pd
-import fiona
 
 # Adicionar diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent))

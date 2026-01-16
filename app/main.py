@@ -4,15 +4,16 @@ Ponto de entrada principal da API
 """
 
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import settings
-from app.core.database import init_db, close_db, check_db_connection
-from app.core.logging import app_logger as logger
 from app.api.v1.router import api_router
+from app.config import settings
+from app.core.database import check_db_connection, close_db, init_db
+from app.core.logging import app_logger as logger
 
 
 @asynccontextmanager

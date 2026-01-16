@@ -4,11 +4,12 @@ Lê arquivos Geodatabase (.gdb) e carrega no PostGIS
 """
 
 import sys
-import geopandas as gpd
 from pathlib import Path
-from sqlalchemy import create_engine
-from loguru import logger
+
+import geopandas as gpd
 import pandas as pd
+from loguru import logger
+from sqlalchemy import create_engine
 
 # Adicionar diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent))

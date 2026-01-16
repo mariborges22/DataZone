@@ -4,7 +4,8 @@ Agrega todos os endpoints
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import subestacoes, linhas, fibra
+
+from app.api.v1.endpoints import fibra, linhas, subestacoes
 
 api_router = APIRouter()
 

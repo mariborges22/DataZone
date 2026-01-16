@@ -4,22 +4,19 @@ Retorna dados em formato GeoJSON
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
-from geoalchemy2.functions import (
-    ST_AsGeoJSON,
-    ST_Simplify,
-    ST_MakeEnvelope,
-    ST_Intersects,
-)
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from geoalchemy2.functions import (ST_AsGeoJSON, ST_Intersects,
+                                   ST_MakeEnvelope, ST_Simplify)
+from sqlalchemy import func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
 from app.core.database import get_db
 from app.core.security import security
 from app.models.subestacao import Subestacao
 from app.schemas.base import FeatureCollectionBase
 from app.utils.geo_utils import rows_to_feature_collection
-from app.config import settings
 
 router = APIRouter()
 

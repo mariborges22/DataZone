@@ -2,9 +2,10 @@
 Schemas para Fibra Ótica
 """
 
-from typing import Optional
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class FibraOpticaBase(BaseModel):

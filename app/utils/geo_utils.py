@@ -2,8 +2,9 @@
 Utilitários GIS para conversão de geometrias
 """
 
-from typing import Any, Dict, List
 import json
+from typing import Any, Dict, List
+
 from geoalchemy2.shape import to_shape
 from shapely.geometry import mapping
 from sqlalchemy.engine import Row

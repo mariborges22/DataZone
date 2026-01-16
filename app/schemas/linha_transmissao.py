@@ -2,9 +2,10 @@
 Schemas para Linhas de Transmissão
 """
 
-from typing import Optional
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class LinhaTransmissaoBase(BaseModel):
