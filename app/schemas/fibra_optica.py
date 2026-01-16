@@ -9,6 +9,7 @@ from datetime import datetime
 
 class FibraOpticaBase(BaseModel):
     """Schema base para Fibra Ótica"""
+
     operadora: Optional[str] = None
     tipo: Optional[str] = None
     tecnologia: Optional[str] = None
@@ -20,19 +21,23 @@ class FibraOpticaBase(BaseModel):
 
 class FibraOpticaProperties(FibraOpticaBase):
     """Propriedades de Fibra Ótica para GeoJSON"""
+
     id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     data_source: Optional[str] = "ANATEL"
-    
+
     class Config:
         from_attributes = True
 
 
 class FibraOpticaFilter(BaseModel):
     """Filtros para busca de infraestrutura de fibra"""
+
     uf: Optional[str] = Field(None, max_length=2, description="Unidade Federativa")
     municipio: Optional[str] = Field(None, description="Nome do município")
     operadora: Optional[str] = Field(None, description="Nome da operadora")
     tecnologia: Optional[str] = Field(None, description="Tipo de tecnologia")
-    capacidade_min: Optional[float] = Field(None, ge=0, description="Capacidade mínima (Gbps)")
+    capacidade_min: Optional[float] = Field(
+        None, ge=0, description="Capacidade mínima (Gbps)"
+    )

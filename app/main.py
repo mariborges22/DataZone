@@ -24,22 +24,22 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Iniciando DataZone Energy API...")
     logger.info(f"Ambiente: {settings.ENVIRONMENT}")
     logger.info(f"Debug: {settings.DEBUG}")
-    
+
     # Verificar conexão com banco
     if check_db_connection():
         logger.info("✅ Conexão com PostgreSQL/PostGIS estabelecida")
     else:
         logger.error("❌ Falha ao conectar com o banco de dados")
-    
+
     # Inicializar banco de dados
     try:
         await init_db()
         logger.info("✅ Banco de dados inicializado")
     except Exception as e:
         logger.error(f"❌ Erro ao inicializar banco: {e}")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("🛑 Encerrando DataZone Energy API...")
     await close_db()
@@ -81,6 +81,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Rotas
 # ============================================
 
+
 # Health check
 @app.get("/health", tags=["Health"])
 async def health_check():
@@ -88,7 +89,7 @@ async def health_check():
     Endpoint de health check para monitoramento
     """
     db_status = check_db_connection()
-    
+
     return JSONResponse(
         status_code=200 if db_status else 503,
         content={
@@ -97,7 +98,7 @@ async def health_check():
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
             "database": "connected" if db_status else "disconnected",
-        }
+        },
     )
 
 
@@ -123,6 +124,7 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 # Exception Handlers
 # ============================================
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """
@@ -134,13 +136,13 @@ async def global_exception_handler(request, exc):
         content={
             "detail": "Erro interno do servidor",
             "type": type(exc).__name__,
-        }
+        },
     )
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

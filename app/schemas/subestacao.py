@@ -9,6 +9,7 @@ from datetime import datetime
 
 class SubestacaoBase(BaseModel):
     """Schema base para Subestação"""
+
     nome: str
     codigo: Optional[str] = None
     tensao_kv: Optional[float] = None
@@ -22,17 +23,19 @@ class SubestacaoBase(BaseModel):
 
 class SubestacaoProperties(SubestacaoBase):
     """Propriedades de Subestação para GeoJSON"""
+
     id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     data_source: Optional[str] = "ANEEL"
-    
+
     class Config:
         from_attributes = True
 
 
 class SubestacaoFilter(BaseModel):
     """Filtros para busca de subestações"""
+
     uf: Optional[str] = Field(None, max_length=2, description="Unidade Federativa")
     municipio: Optional[str] = Field(None, description="Nome do município")
     tensao_min: Optional[float] = Field(None, ge=0, description="Tensão mínima (kV)")

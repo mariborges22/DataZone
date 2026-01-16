@@ -29,11 +29,7 @@ sync_engine = create_engine(
 )
 
 # Session síncrona
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=sync_engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 
 
 # ============================================
@@ -101,7 +97,7 @@ async def init_db() -> None:
     async with async_engine.begin() as conn:
         # Importar todos os modelos aqui para garantir que sejam registrados
         from app.models import subestacao, linha_transmissao, fibra_optica
-        
+
         # Criar todas as tabelas
         await conn.run_sync(Base.metadata.create_all)
 
@@ -119,10 +115,10 @@ def check_db_connection() -> bool:
     """
     try:
         from sqlalchemy import text
+
         with sync_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return True
     except Exception as e:
         print(f"Database connection check failed: {e}")
         return False
-
