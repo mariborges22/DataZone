@@ -5,7 +5,7 @@ Retorna dados em formato GeoJSON
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from geoalchemy2.functions import (
     ST_AsGeoJSON,
     ST_Intersects,
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.models.fibra_optica import FibraOptica
 
 router = APIRouter()
@@ -28,7 +29,9 @@ router = APIRouter()
     summary="Listar Infraestrutura de Fibra Ótica",
     description="Retorna pontos de fibra ótica em formato GeoJSON com filtros opcionais",
 )
+@limiter.limit("20/minute")  # Rate limit para queries GeoJSON pesadas
 async def get_fibra(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     # Filtros geográficos
     bbox: Optional[str] = Query(
@@ -145,7 +148,9 @@ async def get_fibra(
     summary="Obter Ponto de Fibra por ID",
     description="Retorna um ponto de fibra ótica específico em formato GeoJSON",
 )
+@limiter.limit("50/minute")  # Limite mais permissivo para queries por ID
 async def get_fibra_by_id(
+    request: Request,
     fibra_id: int,
     db: AsyncSession = Depends(get_db),
 ):

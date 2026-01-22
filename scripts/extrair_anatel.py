@@ -9,6 +9,7 @@ Data: 2026-01-20
 """
 
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -228,31 +229,34 @@ class AnatelBigQueryETL:
     def _insert_to_postgres(self, df: pd.DataFrame, table_name: str = "cobertura_fibra") -> bool:
         """
         Insere dados no PostgreSQL em chunks.
-        
+
         Args:
             df: DataFrame para inserir
             table_name: Nome da tabela destino
-            
+
         Returns:
             True se sucesso, False caso contrário
         """
         try:
-            logger.info(f"Iniciando inserção no PostgreSQL | Tabela: geo.{table_name}")
+            # Validar table_name para prevenir SQL Injection
+            validated_table_name = self._validate_table_name(table_name)
+
+            logger.info(f"Iniciando inserção no PostgreSQL | Tabela: geo.{validated_table_name}")
             start_time = time.time()
-            
+
             # Inserir em chunks para melhor performance
             total_chunks = (len(df) // self.chunk_size) + 1
-            
+
             for i, chunk_start in enumerate(range(0, len(df), self.chunk_size)):
                 chunk_end = min(chunk_start + self.chunk_size, len(df))
                 chunk = df.iloc[chunk_start:chunk_end]
-                
+
                 # Primeira iteração: replace (limpa tabela)
                 # Demais: append
                 if_exists_mode = 'replace' if i == 0 else 'append'
-                
+
                 chunk.to_sql(
-                    table_name,
+                    validated_table_name,
                     self.pg_engine,
                     schema='geo',
                     if_exists=if_exists_mode,
@@ -260,13 +264,13 @@ class AnatelBigQueryETL:
                     method='multi',  # Inserção batch otimizada
                     chunksize=1000
                 )
-                
+
                 logger.info(
                     f"Chunk {i+1}/{total_chunks} inserido | "
                     f"Linhas: {len(chunk)} | "
                     f"Progresso: {(chunk_end/len(df)*100):.1f}%"
                 )
-            
+
             elapsed_time = time.time() - start_time
             logger.success(
                 f"✅ Inserção concluída | "
@@ -274,36 +278,73 @@ class AnatelBigQueryETL:
                 f"Tempo: {elapsed_time:.2f}s | "
                 f"Taxa: {len(df)/elapsed_time:.0f} linhas/s"
             )
-            
+
             return True
-            
+
+        except ValueError as e:
+            logger.error(f"❌ Erro de validação: {e}")
+            return False
         except Exception as e:
             logger.error(f"❌ Erro ao inserir dados no PostgreSQL: {e}")
             return False
     
+    @staticmethod
+    def _validate_table_name(table_name: str) -> str:
+        """
+        Valida e sanitiza nome da tabela para prevenir SQL Injection.
+
+        Args:
+            table_name: Nome da tabela a validar
+
+        Returns:
+            Nome da tabela validado
+
+        Raises:
+            ValueError: Se o nome da tabela for inválido
+        """
+        # Permitir apenas letras, números e underscores
+        if not re.match(r'^[a-zA-Z0-9_]+$', table_name):
+            raise ValueError(
+                f"Nome de tabela inválido: '{table_name}'. "
+                "Apenas letras, números e underscores são permitidos."
+            )
+
+        # Limitar tamanho máximo
+        if len(table_name) > 63:  # Limite do PostgreSQL
+            raise ValueError(f"Nome de tabela muito longo: '{table_name}' (máximo 63 caracteres)")
+
+        return table_name
+
     def _create_indexes(self, table_name: str = "cobertura_fibra") -> bool:
         """Cria índices na tabela para otimizar consultas."""
         try:
             logger.info("Criando índices...")
-            
+
+            # Validar table_name para prevenir SQL Injection
+            validated_table_name = self._validate_table_name(table_name)
+
             with self.pg_engine.connect() as conn:
                 # Índice por município (id_municipio)
+                # SEGURANÇA: table_name validado acima
                 conn.execute(text(f"""
-                    CREATE INDEX IF NOT EXISTS idx_{table_name}_municipio 
-                    ON geo.{table_name} (id_municipio)
+                    CREATE INDEX IF NOT EXISTS idx_{validated_table_name}_municipio
+                    ON geo.{validated_table_name} (id_municipio)
                 """))
-                
+
                 # Índice por tecnologia
                 conn.execute(text(f"""
-                    CREATE INDEX IF NOT EXISTS idx_{table_name}_tecnologia 
-                    ON geo.{table_name} (tecnologia)
+                    CREATE INDEX IF NOT EXISTS idx_{validated_table_name}_tecnologia
+                    ON geo.{validated_table_name} (tecnologia)
                 """))
-                
+
                 conn.commit()
-            
+
             logger.success("✅ Índices criados com sucesso")
             return True
-            
+
+        except ValueError as e:
+            logger.error(f"❌ Erro de validação: {e}")
+            return False
         except Exception as e:
             logger.warning(f"⚠️ Erro ao criar índices (não crítico): {e}")
             return False
