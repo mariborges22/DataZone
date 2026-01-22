@@ -15,13 +15,15 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from google.cloud import bigquery
 from google.api_core import retry
-from sqlalchemy import create_engine, text
+from google.cloud import bigquery
 from loguru import logger
+from sqlalchemy import create_engine, text
 
-# Configurar credenciais explicitamente (caminho absoluto no container)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/secrets/gpc-service-account.json"
+# Configurar credenciais:
+# Removemos a definição explícita de GOOGLE_APPLICATION_CREDENTIALS para arquivo local.
+# O script agora usará ADC (Application Default Credentials), que funciona automaticamente
+# com Workload Identity Federation (no GitHub) e gcloud auth application-default login (local).
 
 # Configurar logging
 logger.remove()  # Remove handler padrão
@@ -75,19 +77,21 @@ class AnatelBigQueryETL:
         logger.info(f"Pipeline ETL inicializada | Projeto: {project_id} | Chunk Size: {chunk_size}")
     
     def _validate_credentials(self) -> bool:
-        """Valida credenciais do Google Cloud."""
-        creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        
-        if not creds_path:
-            logger.error("GOOGLE_APPLICATION_CREDENTIALS não configurada!")
+        """Valida credenciais do Google Cloud (ADC)."""
+        # Com ADC, não verificamos mais um arquivo estático específico.
+        # A própria biblioteca google-auth gerencia isso.
+        # Podemos verificar se o projeto padrão está acessível.
+        try:
+            import google.auth
+            credentials, project = google.auth.default()
+            if not credentials:
+                 logger.error("Credenciais ADC não encontradas!")
+                 return False
+            logger.success(f"Credenciais GCP (ADC) detectadas. Projeto quota/billing: {project}")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao validar credenciais ADC: {e}")
             return False
-        
-        if not Path(creds_path).exists():
-            logger.error(f"Arquivo de credenciais não encontrado: {creds_path}")
-            return False
-        
-        logger.success(f"Credenciais GCP encontradas: {creds_path}")
-        return True
     
     def _connect_bigquery(self) -> bool:
         """Estabelece conexão com BigQuery."""
@@ -110,7 +114,7 @@ class AnatelBigQueryETL:
             
         except Exception as e:
             logger.error(f"❌ Erro ao conectar BigQuery: {e}")
-            logger.error(f"Verifique se o arquivo secrets/gpc-service-account.json existe e tem permissões corretas")
+            logger.error(f"Verifique se a autenticação via ADC ou WIF está configurada corretamente.")
             return False
     
     def _connect_postgres(self) -> bool:

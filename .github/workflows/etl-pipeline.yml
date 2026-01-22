@@ -90,6 +90,11 @@ jobs:
       name: production
       url: https://console.cloud.google.com/bigquery
     
+    # Permissões necessárias para OIDC (Workload Identity Federation)
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -97,7 +102,10 @@ jobs:
       - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          # TODO: Substitua pelos seus valores reais do GCP
+          workload_identity_provider: 'projects/365576075295/locations/global/workloadIdentityPools/datazone/providers/github-provider'
+          service_account: 'datazone-sa@causal-tracker-484821-f1.iam.gserviceaccount.com'
+          # credentials_json foi removido em favor do WIF (mais seguro)
 
       - name: Set up Python
         uses: actions/setup-python@v4

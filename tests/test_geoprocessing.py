@@ -1,7 +1,9 @@
-import pytest
-import geopandas as gpd
-from shapely.geometry import Point
 from unittest.mock import MagicMock
+
+import geopandas as gpd
+import pytest
+from shapely.geometry import Point
+
 
 def mock_convert_coords(lat, lon, target_crs="EPSG:4326"):
     """

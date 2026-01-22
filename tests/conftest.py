@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import MagicMock
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
 
 # Adiciona o diretório raiz ao sys.path para que o pytest encontre a pasta 'app'
 sys.path.insert(0, str(Path(__file__).parent.parent))

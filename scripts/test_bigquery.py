@@ -6,6 +6,7 @@ basedosdados usando o projeto causal-tracker-484821-f1 para billing.
 """
 
 import os
+
 from google.cloud import bigquery
 
 # Configurar credenciais

@@ -1,11 +1,13 @@
 
 import os
 import sys
+
 import geopandas as gpd
+from shapely.geometry import LineString, MultiLineString
 from sqlalchemy import create_engine
+
 from app.config import settings
 from app.core.logging import app_logger as logger
-from shapely.geometry import MultiLineString, LineString
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
