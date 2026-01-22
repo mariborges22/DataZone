@@ -121,6 +121,62 @@ services:
     profiles:
       - dev
 
+  # Pipeline ETL BigQuery → PostGIS
+  pipeline_etl:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.pipeline
+    container_name: datazone_pipeline_etl
+    environment:
+      # Google Cloud / BigQuery
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp-service-account.json
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-causal-tracker-484821-f1}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-causal-tracker-484821-f1}
+
+      # PostgreSQL (mesma configuração do serviço api)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-datazone_user}:${POSTGRES_PASSWORD:-datazone_pass_dev}@postgis:5432/${POSTGRES_DB:-datazone_energy}
+
+      # ETL Configuration
+      ETL_CHUNK_SIZE: ${ETL_CHUNK_SIZE:-10000}
+      ETL_MAX_RETRIES: ${ETL_MAX_RETRIES:-3}
+      ETL_RETRY_DELAY_SECONDS: ${ETL_RETRY_DELAY_SECONDS:-5}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+    volumes:
+      # Chave de autenticação GCP (read-only para segurança)
+      - ./secrets:/secrets:ro
+      # Queries SQL (read-only)
+      - ./queries:/app/queries:ro
+      # Scripts Python (para desenvolvimento)
+      - ./scripts:/app/scripts
+      # Logs de execução
+      - ./logs:/app/logs
+      # Dados (opcional)
+      - ./data:/app/data
+
+    networks:
+      - datazone_network
+
+    depends_on:
+      postgis:
+        condition: service_healthy
+
+    # Não inicia automaticamente (execução manual ou agendada)
+    profiles:
+      - etl
+
+    # Limites de recursos otimizados para ETL
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
 networks:
   datazone_network:
     driver: bridge

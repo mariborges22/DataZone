@@ -1,0 +1,52 @@
+# ============================================
+# DataZone Energy - Pipeline ETL Container
+# ============================================
+# Container otimizado para extração BigQuery → PostGIS
+# Sem dependências GIS pesadas (GDAL/PROJ)
+
+FROM python:3.10-slim-bullseye
+
+# Metadados
+LABEL maintainer="DataZone Energy Team"
+LABEL description="Pipeline ETL para extração BigQuery (Anatel) → PostGIS"
+LABEL version="1.0.0"
+
+# Variáveis de ambiente para otimização
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependências mínimas do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Cliente PostgreSQL (para validação de conexão)
+    postgresql-client \
+    # Utilitários
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Criar diretório de trabalho
+WORKDIR /app
+
+# Copiar requirements primeiro (melhor cache do Docker)
+COPY docker/requirements-pipeline.txt .
+
+# Instalar dependências Python
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-pipeline.txt
+
+# Criar diretórios necessários
+RUN mkdir -p /app/queries /app/scripts /app/logs /app/data
+
+# Copiar scripts e queries
+COPY queries/ /app/queries/
+COPY scripts/ /app/scripts/
+
+# Healthcheck (verifica se Python está respondendo)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)" || exit 1
+
+# Comando padrão (pode ser sobrescrito)
+CMD ["python", "scripts/extrair_anatel.py"]

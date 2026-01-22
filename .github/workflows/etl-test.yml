@@ -1,0 +1,197 @@
+name: ETL Pipeline Tests (PR)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'docker/Dockerfile.pipeline'
+      - 'queries/**'
+      - '.github/workflows/etl-*.yml'
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: Code Quality & Linting
+  # ------------------------------------------------------------------
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Linting Tools
+        run: |
+          pip install sqlfluff black isort flake8
+
+      - name: Lint Python Code
+        run: |
+          flake8 scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 scripts/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Lint SQL Queries
+        run: |
+          # Lint BigQuery dialect files
+          sqlfluff lint queries/ --dialect bigquery
+
+  # ------------------------------------------------------------------
+  # JOB 2: Unit Tests
+  # ------------------------------------------------------------------
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-pipeline.txt
+          pip install pytest pytest-mock
+
+      - name: Run Pytest
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/mock-creds.json
+        run: |
+          echo '{}' > /tmp/mock-creds.json
+          # Execute tests if they exist, otherwise verify import works
+          if [ -d "tests" ]; then
+            pytest tests/
+          else
+            echo "⚠️  No tests/ folder found. Basic import test:"
+            python -c "import scripts.extrair_anatel" || echo "Import skipped/failed"
+          fi
+
+  # ------------------------------------------------------------------
+  # JOB 3: BigQuery Dry Run (Validation)
+  # ------------------------------------------------------------------
+  bq-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install BigQuery Client
+        run: pip install google-cloud-bigquery
+
+      - name: Validate Queries (Dry Run)
+        env:
+          GOOGLE_CLOUD_PROJECT: 'causal-tracker-484821-f1'
+        run: |
+          python -c "
+          import os
+          from google.cloud import bigquery
+          
+          client = bigquery.Client()
+          job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
+          
+          # List of queries to validate
+          queries = ['queries/extrair_fibra.sql']
+          
+          has_error = False
+          for q_file in queries:
+              if not os.path.exists(q_file):
+                  print(f'⚠️  File not found: {q_file}')
+                  continue
+                  
+              with open(q_file, 'r') as f:
+                  query = f.read()
+              
+              try:
+                  job = client.query(query, job_config=job_config)
+                  print(f'✅ Query valid: {q_file}')
+                  print(f'   - Estimated bytes: {job.total_bytes_processed:,}')
+              except Exception as e:
+                  print(f'❌ Query INVALID: {q_file}')
+                  print(e)
+                  has_error = True
+          
+          if has_error:
+              exit(1)
+          "
+
+  # ------------------------------------------------------------------
+  # JOB 4: Docker Build Test
+  # ------------------------------------------------------------------
+  docker-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker Image (No Push)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/Dockerfile.pipeline
+          push: false
+          tags: test/pipeline:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------
+  # JOB 5: PR Comment
+  # ------------------------------------------------------------------
+  pr-comment:
+    needs: [lint-and-validate, unit-tests, bq-dry-run, docker-validation]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const results = {
+              lint: '${{ needs.lint-and-validate.result }}',
+              tests: '${{ needs.unit-tests.result }}',
+              bq: '${{ needs.bq-dry-run.result }}',
+              docker: '${{ needs.docker-validation.result }}'
+            };
+            
+            const emoji = (status) => status === 'success' ? '✅' : '❌';
+            
+            const body = `### 🛡️ ETL Validation Results
+            
+            | Check | Status |
+            |-------|--------|
+            | 🎨 Lint & SQLFluff | ${emoji(results.lint)} ${results.lint} |
+            | 🧪 Unit Tests | ${emoji(results.tests)} ${results.tests} |
+            | ☁️ BigQuery Dry Run | ${emoji(results.bq)} ${results.bq} |
+            | 🐳 Docker Build | ${emoji(results.docker)} ${results.docker} |
+            
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            })

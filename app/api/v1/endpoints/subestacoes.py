@@ -6,8 +6,12 @@ Retorna dados em formato GeoJSON
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from geoalchemy2.functions import (ST_AsGeoJSON, ST_Intersects,
-                                   ST_MakeEnvelope, ST_Simplify)
+from geoalchemy2.functions import (
+    ST_AsGeoJSON,
+    ST_Intersects,
+    ST_MakeEnvelope,
+    ST_Simplify,
+)
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 

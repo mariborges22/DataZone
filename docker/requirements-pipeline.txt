@@ -1,0 +1,25 @@
+# ============================================
+# DataZone Energy - Pipeline ETL Dependencies
+# ============================================
+# Dependências isoladas para o container de ETL BigQuery
+
+# Google Cloud BigQuery
+google-cloud-bigquery==3.14.1
+db-dtypes==1.2.0  # Tipos de dados BigQuery para Pandas
+
+# Processamento de dados
+pandas==2.2.0
+numpy==1.26.3
+
+# Banco de dados PostgreSQL
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+
+# Configuração e ambiente
+python-dotenv==1.0.0
+
+# Logging estruturado
+loguru==0.7.2
+
+# Utilitários
+pyarrow==14.0.2  # Performance para leitura BigQuery

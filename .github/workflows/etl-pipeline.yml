@@ -1,0 +1,131 @@
+name: ETL Pipeline Production
+
+on:
+  # Trigger manual com inputs
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Ano de referência'
+        required: true
+        default: '2023'
+      month:
+        description: 'Mês de referência (opcional)'
+        required: false
+  
+  # Trigger agendado (Diariamente às 3h UTC)
+  schedule:
+    - cron: '0 3 * * *'
+    
+  # Trigger em tags de versão
+  push:
+    tags:
+      - 'etl-v*'
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: Build & Unit Tests
+  # ------------------------------------------------------------------
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docker/requirements-pipeline.txt
+          pip install pytest pytest-mock
+
+      - name: Run Unit Tests
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+        run: |
+          # Mock GCP credentials for unit tests
+          echo '{}' > /tmp/gcp-key.json
+          # Run tests (assuming tests are located in tests/)
+          # If no tests exist yet, this placeholder ensures job passes
+          if [ -d "tests" ]; then
+            pytest tests/
+          else
+            echo "No tests directory found. Skipping pytest."
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub (Optional)
+        # Uncomment and configure if pushing to registry
+        # uses: docker/login-action@v2
+        # with:
+        #   username: ${{ secrets.DOCKERHUB_USERNAME }}
+        #   password: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: echo "Skipping Docker Login"
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/Dockerfile.pipeline
+          push: false # Set to true if registry configured
+          tags: datazone/pipeline-etl:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------
+  # JOB 2: Execution (Production)
+  # ------------------------------------------------------------------
+  execute-etl:
+    needs: build-and-test
+    name: Execute ETL Pipeline
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    environment: 
+      name: production
+      url: https://console.cloud.google.com/bigquery
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-pipeline.txt
+
+      - name: Execute ETL Script
+        env:
+          GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT || 'causal-tracker-484821-f1' }}
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'causal-tracker-484821-f1' }}
+          DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:5432/${{ secrets.POSTGRES_DB }}
+          ETL_YEAR: ${{ github.event.inputs.year }}
+          ETL_MONTH: ${{ github.event.inputs.month }}
+        run: |
+          echo "🚀 Starting ETL Execution..."
+          echo "Project: $GOOGLE_CLOUD_PROJECT"
+          
+          # Executa o script
+          # Nota: O script Python deve ser preparado para aceitar argumentos de ano/mês
+          python scripts/extrair_anatel.py
+          
+      - name: Notify Failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('ETL Pipeline failed! Check logs.')

@@ -51,6 +51,11 @@ logs/
 !logs/.gitkeep
 *.log
 
+# Secrets and credentials (CRITICAL: Never commit!)
+secrets/
+gcp-*.json
+*-service-account.json
+
 # Data files
 data/raw/*
 data/processed/*
