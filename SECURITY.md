@@ -47,6 +47,56 @@ Campos **NUNCA** expostos ao frontend:
 - ✅ Campos sensíveis removidos do response
 - ✅ Mensagens de erro genéricas (não expõem detalhes internos)
 
+### 4. **Rate Limiting e Proteção DDoS** ⭐ NOVO
+Implementado em `app/core/rate_limit.py` com:
+
+#### 🚦 Limites por Endpoint
+- **Health Check**: 300 req/min (monitoramento)
+- **Root**: 100 req/min (informacional)
+- **Queries GeoJSON**: 20 req/min (operações pesadas)
+- **Queries por ID**: 50 req/min (operações leves)
+- **Rate Limit Status**: 60 req/min (debug)
+
+#### 🔍 Identificação Inteligente de Cliente
+- **Prioridade 1**: IP real (X-Forwarded-For header)
+- **Prioridade 2**: IP direto da requisição
+- **Prioridade 3**: User-Agent (fallback)
+
+#### 📊 Features
+- ✅ Suporte a Redis para ambiente distribuído
+- ✅ Fallback para memória (desenvolvimento)
+- ✅ Headers de rate limit nas respostas
+- ✅ Logs de tentativas de abuso
+- ✅ Whitelist para IPs internos
+- ✅ Resposta customizada 429 (Too Many Requests)
+
+```python
+# Exemplo de resposta quando limite excedido
+{
+  "error": "Rate limit exceeded",
+  "message": "Você excedeu o limite de requisições. Tente novamente em alguns segundos.",
+  "detail": "20 per 1 minute",
+  "endpoint": "/api/v1/fibra"
+}
+```
+
+### 5. **SQL Injection em Scripts ETL** ⭐ NOVO
+Correção em `scripts/extrair_anatel.py`:
+
+#### 🛡️ Validação de Table Names
+- **Whitelist**: Apenas `[a-zA-Z0-9_]`
+- **Limite**: Máximo 63 caracteres (PostgreSQL limit)
+- **Sanitização**: Método `_validate_table_name()`
+
+```python
+# Antes (VULNERÁVEL)
+conn.execute(text(f"CREATE INDEX ON geo.{table_name}"))
+
+# Depois (SEGURO)
+validated_name = self._validate_table_name(table_name)
+conn.execute(text(f"CREATE INDEX ON geo.{validated_name}"))
+```
+
 ---
 
 ## 🔐 Boas Práticas Implementadas
@@ -114,10 +164,12 @@ BACKEND_CORS_ORIGINS=["https://seudominio.com"]
 - [ ] CORS configurado apenas para domínios autorizados
 - [ ] HTTPS habilitado (certificado SSL)
 - [ ] Firewall configurado
-- [ ] Rate limiting implementado
+- [x] **Rate limiting implementado** ✅
+- [ ] Redis habilitado para rate limiting em produção (`ENABLE_REDIS_CACHE=true`)
 - [ ] Logs centralizados (não expor ao público)
 - [ ] Backup automático do banco
 - [ ] Monitoramento de segurança ativo
+- [ ] Instalar dependências: `pip install -r requirements.txt`
 
 ---
 
@@ -129,32 +181,39 @@ BACKEND_CORS_ORIGINS=["https://seudominio.com"]
 - Erros 500 frequentes
 - Acessos a endpoints inexistentes
 - Tentativas de autenticação falhadas
+- ⭐ **Rate limit excedido** (log: "⚠️ Rate limit excedido")
+- ⭐ **Validação de table name falhou** (possível SQL injection em scripts)
 
 ### Alertas Recomendados
 - Mais de 10 erros 400 em 1 minuto (possível scan)
 - Mais de 5 erros 500 em 1 minuto (possível ataque)
 - Bbox com tamanho > 10 graus (possível DoS)
 - Queries com caracteres suspeitos
+- ⭐ **Mais de 50 erros 429 por IP em 5 minutos** (possível DDoS)
+- ⭐ **Mesmo IP excedendo rate limit em múltiplos endpoints** (bot malicioso)
 
 ---
 
 ## 🔒 Próximas Melhorias de Segurança
 
-### Fase 1 (MVP) ✅
+### Fase 1 (MVP) ✅ CONCLUÍDA
 - [x] Desabilitar SQL logging
 - [x] Criar módulo de segurança
 - [x] Validar inputs
 - [x] Remover campos sensíveis
+- [x] **Rate limiting por IP** ⭐ IMPLEMENTADO
+- [x] **SQL Injection prevention em scripts** ⭐ IMPLEMENTADO
+- [x] **Proteção DDoS** ⭐ IMPLEMENTADO
 
 ### Fase 2 (Pós-MVP)
 - [ ] Implementar autenticação JWT
-- [ ] Rate limiting por IP
 - [ ] CAPTCHA em endpoints públicos
 - [ ] Auditoria de acessos
 - [ ] Criptografia de dados em repouso
 - [ ] 2FA para admin
 - [ ] WAF (Web Application Firewall)
 - [ ] Penetration testing
+- [ ] Análise de vulnerabilidades automatizada
 
 ---
 

@@ -5,15 +5,21 @@ Ponto de entrada principal da API
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.router import api_router
 from app.config import settings
 from app.core.database import check_db_connection, close_db, init_db
 from app.core.logging import app_logger as logger
+from app.core.rate_limit import (
+    custom_rate_limit_exceeded_handler,
+    get_rate_limit_status,
+    limiter,
+)
 
 
 @asynccontextmanager
@@ -60,6 +66,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Adicionar rate limiter ao state da aplicação
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
+
 
 # ============================================
 # Middlewares
@@ -85,7 +95,8 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Health check
 @app.get("/health", tags=["Health"])
-async def health_check():
+@limiter.limit("300/minute")  # Limite alto para monitoramento
+async def health_check(request: Request):
     """
     Endpoint de health check para monitoramento
     """
@@ -105,7 +116,8 @@ async def health_check():
 
 # Root
 @app.get("/", tags=["Root"])
-async def root():
+@limiter.limit("100/minute")
+async def root(request: Request):
     """
     Endpoint raiz da API
     """
@@ -114,7 +126,18 @@ async def root():
         "version": settings.VERSION,
         "docs": "/docs",
         "health": "/health",
+        "rate_limit_status": "/api/v1/rate-limit-status",
     }
+
+
+# Rate limit status (útil para debug)
+@app.get("/api/v1/rate-limit-status", tags=["System"])
+@limiter.limit("60/minute")
+async def rate_limit_status(request: Request):
+    """
+    Retorna status atual de rate limiting para o cliente
+    """
+    return get_rate_limit_status(request)
 
 
 # Incluir rotas da API v1
