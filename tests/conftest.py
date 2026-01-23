@@ -21,5 +21,16 @@ def mock_db_connection(monkeypatch):
     monkeypatch.setattr("app.core.database.check_db_connection", lambda: True)
     
     # Mock de funções assíncronas de ciclo de vida (lifespan)
-    monkeypatch.setattr("app.core.database.init_db", AsyncMock())
-    monkeypatch.setattr("app.core.database.close_db", AsyncMock())
+    # Mock de funções assíncronas de ciclo de vida (lifespan)
+    # Importante: Mockar tanto na origem quanto no destino (app.main) onde é usado
+    mock_init_db = AsyncMock()
+    mock_close_db = AsyncMock()
+    
+    monkeypatch.setattr("app.core.database.init_db", mock_init_db)
+    monkeypatch.setattr("app.core.database.close_db", mock_close_db)
+    
+    # Tentar mockar no app.main se já estiver importado
+    import sys
+    if "app.main" in sys.modules:
+        monkeypatch.setattr("app.main.init_db", mock_init_db)
+        monkeypatch.setattr("app.main.close_db", mock_close_db)
