@@ -1,20 +1,33 @@
-name: Lint Code
+name: Auto Format Code
 
 on:
   push:
     branches:
       - main
+      - staging
+    paths:
+      - '**.py'
   pull_request:
     branches:
       - main
       - staging
+    paths:
+      - '**.py'
 
 jobs:
-  lint:
+  format:
     runs-on: ubuntu-latest
+    permissions:
+      # Permissões necessárias para commitar de volta no repositório
+      contents: write
+      
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          # É necessário usar um token ou PAT se quiser disparar outros workflows após o commit
+          # Mas o token padrão GITHUB_TOKEN serve para apenas commitar
+          ref: ${{ github.head_ref }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -26,8 +39,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install black isort
 
-      - name: Run Black
-        run: black --check .
+      - name: Run Black (Format)
+        run: black .
 
-      - name: Run Isort
-        run: isort --check-only .
+      - name: Run Isort (Format)
+        run: isort .
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format python code with black and isort"
+          branch: ${{ github.head_ref }}
+          file_pattern: '*.py'
