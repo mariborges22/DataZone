@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 
@@ -19,3 +19,7 @@ def mock_db_connection(monkeypatch):
     
     # Mock da função de verificação de conexão usada no health check
     monkeypatch.setattr("app.core.database.check_db_connection", lambda: True)
+    
+    # Mock de funções assíncronas de ciclo de vida (lifespan)
+    monkeypatch.setattr("app.core.database.init_db", AsyncMock())
+    monkeypatch.setattr("app.core.database.close_db", AsyncMock())

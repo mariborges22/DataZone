@@ -121,13 +121,13 @@ async def root(request: Request):
     """
     Endpoint raiz da API
     """
-    return {
+    return JSONResponse(content={
         "message": "DataZone Energy API",
         "version": settings.VERSION,
         "docs": "/docs",
         "health": "/health",
         "rate_limit_status": "/api/v1/rate-limit-status",
-    }
+    })
 
 
 # Rate limit status (útil para debug)
