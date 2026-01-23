@@ -20,8 +20,20 @@ Base = declarative_base()
 # ============================================
 # Engine Síncrono (para scripts de migração)
 # ============================================
+import os
+
+# Função para garantir URL correta para drivers assíncronos
+def get_async_database_url(url: str) -> str:
+    if url and url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+# Obter URL do ambiente (prioridade sobre settings)
+DATABASE_URL = os.getenv("DATABASE_URL", settings.DATABASE_URL)
+ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL") or get_async_database_url(DATABASE_URL)
+
 sync_engine = create_engine(
-    settings.DATABASE_URL,
+    DATABASE_URL,
     pool_pre_ping=True,
     pool_size=settings.MAX_CONNECTIONS_POOL,
     max_overflow=10,
@@ -36,7 +48,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 # Engine Assíncrono (para API)
 # ============================================
 async_engine = create_async_engine(
-    settings.ASYNC_DATABASE_URL,
+    ASYNC_DATABASE_URL,
     pool_pre_ping=True,
     pool_size=settings.MAX_CONNECTIONS_POOL,
     max_overflow=10,

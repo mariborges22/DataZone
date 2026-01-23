@@ -15,7 +15,7 @@ def mock_db_connection(monkeypatch):
     """
     # Mock do objeto de configurações para garantir que não use URLs reais acidentalmente
     monkeypatch.setattr("app.core.database.sync_engine", MagicMock())
-    monkeypatch.setattr("app.core.database.async_engine", MagicMock())
+    monkeypatch.setattr("app.core.database.async_engine", AsyncMock())
     
     # Mock da função de verificação de conexão usada no health check
     monkeypatch.setattr("app.core.database.check_db_connection", lambda: True)

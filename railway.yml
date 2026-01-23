@@ -1,0 +1,20 @@
+version: 1
+services:
+  api:
+    build:
+      builder: DOCKERFILE
+    deploy:
+      healthcheckPath: /health
+      healthcheckTimeout: 100
+      restartPolicyType: ON_FAILURE
+      numReplicas: 1
+    variables:
+      PORT: 8000
+      DATABASE_URL: ${{ Postgres.DATABASE_URL }}
+      # Manteremos as credenciais via secrets do GitHub/Railway para BigQuery (WIF/JSON)
+plugins:
+  Postgres:
+    type: postgresql
+    plugins:
+      postgis:
+        enabled: true
