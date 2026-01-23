@@ -81,7 +81,7 @@ def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded)
         headers={
             "Retry-After": "60",  # Sugerir retry após 60 segundos
             "X-RateLimit-Limit": str(exc.detail),
-        }
+        },
     )
 
 
@@ -102,6 +102,7 @@ limiter = Limiter(
 # ============================================
 # Decoradores de Rate Limiting
 # ============================================
+
 
 def rate_limit_endpoint(limits: str):
     """
@@ -128,18 +129,15 @@ def rate_limit_endpoint(limits: str):
 # Rate limiting por tipo de operação
 RATE_LIMITS = {
     # Endpoints de leitura (mais permissivos)
-    "read_light": "100/minute",      # Queries simples
-    "read_medium": "50/minute",      # Queries com filtros
-    "read_heavy": "20/minute",       # Queries complexas com geometria
-
+    "read_light": "100/minute",  # Queries simples
+    "read_medium": "50/minute",  # Queries com filtros
+    "read_heavy": "20/minute",  # Queries complexas com geometria
     # Endpoints de escrita (mais restritivos)
-    "write": "10/minute",            # POST/PUT/DELETE
-
+    "write": "10/minute",  # POST/PUT/DELETE
     # Health checks (muito permissivo)
-    "health": "300/minute",          # Monitoramento
-
+    "health": "300/minute",  # Monitoramento
     # Global (proteção DDoS)
-    "global": "1000/hour",           # Limite geral por IP
+    "global": "1000/hour",  # Limite geral por IP
 }
 
 
@@ -159,6 +157,7 @@ def get_rate_limit(operation_type: str) -> str:
 # ============================================
 # Middleware de Rate Limiting Global
 # ============================================
+
 
 class RateLimitMiddleware:
     """
@@ -189,6 +188,7 @@ class RateLimitMiddleware:
 
         # Criar Request object
         from fastapi import Request
+
         request = Request(scope, receive)
 
         # Aplicar rate limiting global
@@ -211,6 +211,7 @@ class RateLimitMiddleware:
 # Funções auxiliares
 # ============================================
 
+
 def is_whitelisted(ip: str) -> bool:
     """
     Verifica se IP está na whitelist (sem rate limiting).
@@ -230,9 +231,11 @@ def is_whitelisted(ip: str) -> bool:
 
     # Adicionar IPs de monitoramento em produção
     if not settings.DEBUG:
-        whitelist.extend([
-            # Adicionar IPs de load balancers, monitoring, etc
-        ])
+        whitelist.extend(
+            [
+                # Adicionar IPs de load balancers, monitoring, etc
+            ]
+        )
 
     return ip in whitelist
 

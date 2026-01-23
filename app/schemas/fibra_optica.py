@@ -39,6 +39,4 @@ class FibraOpticaFilter(BaseModel):
     municipio: Optional[str] = Field(None, description="Nome do município")
     operadora: Optional[str] = Field(None, description="Nome da operadora")
     tecnologia: Optional[str] = Field(None, description="Tipo de tecnologia")
-    capacidade_min: Optional[float] = Field(
-        None, ge=0, description="Capacidade mínima (Gbps)"
-    )
+    capacidade_min: Optional[float] = Field(None, ge=0, description="Capacidade mínima (Gbps)")

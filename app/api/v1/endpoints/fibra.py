@@ -34,24 +34,18 @@ async def get_fibra(
     request: Request,
     db: AsyncSession = Depends(get_db),
     # Filtros geográficos
-    bbox: Optional[str] = Query(
-        None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"
-    ),
+    bbox: Optional[str] = Query(None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"),
     uf: Optional[str] = Query(None, max_length=2, description="Unidade Federativa"),
     municipio: Optional[str] = Query(None, description="Nome do município"),
     # Filtros técnicos
     operadora: Optional[str] = Query(None, description="Nome da operadora"),
     tecnologia: Optional[str] = Query(None, description="Tipo de tecnologia"),
-    capacidade_min: Optional[float] = Query(
-        None, ge=0, description="Capacidade mínima (Gbps)"
-    ),
+    capacidade_min: Optional[float] = Query(None, ge=0, description="Capacidade mínima (Gbps)"),
     # Paginação
     skip: int = Query(0, ge=0, description="Registros para pular"),
     limit: int = Query(100, ge=1, le=1000, description="Máximo de registros"),
     # Simplificação
-    simplify: bool = Query(
-        True, description="Simplificar geometrias para reduzir tamanho"
-    ),
+    simplify: bool = Query(True, description="Simplificar geometrias para reduzir tamanho"),
 ):
     """
     Retorna infraestrutura de fibra ótica em formato GeoJSON
@@ -74,14 +68,12 @@ async def get_fibra(
         # Adicionar geometria (simplificada ou não)
         if simplify:
             query = query.add_columns(
-                ST_AsGeoJSON(
-                    ST_Simplify(FibraOptica.geometry, settings.SIMPLIFY_TOLERANCE)
-                ).label("geometry")
+                ST_AsGeoJSON(ST_Simplify(FibraOptica.geometry, settings.SIMPLIFY_TOLERANCE)).label(
+                    "geometry"
+                )
             )
         else:
-            query = query.add_columns(
-                ST_AsGeoJSON(FibraOptica.geometry).label("geometry")
-            )
+            query = query.add_columns(ST_AsGeoJSON(FibraOptica.geometry).label("geometry"))
 
         # Aplicar filtros
         if bbox:
@@ -130,9 +122,7 @@ async def get_fibra(
                 else:
                     properties[key] = value
 
-            features.append(
-                {"type": "Feature", "geometry": geometry, "properties": properties}
-            )
+            features.append({"type": "Feature", "geometry": geometry, "properties": properties})
 
         return {"type": "FeatureCollection", "features": features}
 

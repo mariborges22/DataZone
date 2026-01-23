@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+
 def test_read_root():
     """
     Verifica se o endpoint raiz está respondendo corretamente.
@@ -11,6 +12,7 @@ def test_read_root():
         response = client.get("/")
         assert response.status_code == 200
         assert "DataZone Energy API" in response.json()["message"]
+
 
 def test_health_check_endpoint():
     """

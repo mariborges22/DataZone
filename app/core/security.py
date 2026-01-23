@@ -229,9 +229,7 @@ def sanitize_inputs(func):
 
     def wrapper(*args, **kwargs):
         # Sanitizar kwargs
-        sanitized_kwargs = {
-            k: security.sanitize_sql_input(v) for k, v in kwargs.items()
-        }
+        sanitized_kwargs = {k: security.sanitize_sql_input(v) for k, v in kwargs.items()}
         return func(*args, **sanitized_kwargs)
 
     return wrapper
