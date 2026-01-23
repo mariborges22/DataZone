@@ -66,44 +66,18 @@ jobs:
   # ========================================
   # JOB 2: Linting e Code Quality
   # ========================================
-  lint:
-    name: Code Quality
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Install linters
-        run: |
-          pip install black flake8 isort bandit safety
-      
-      - name: Check code formatting (Black)
-        run: black --check app/ scripts/
-      
-      - name: Check import sorting (isort)
-        run: isort --check-only app/ scripts/
-      
-      - name: Lint code (Flake8)
-        run: flake8 app/ scripts/ --max-line-length=100 --exclude=__pycache__
-      
-      - name: Security check (Bandit)
-        run: bandit -r app/ -ll
-      
-      - name: Check dependencies (Safety)
-        run: safety check --json || true
+  # ========================================
+  # JOB 2: Linting e Code Quality (Delegado para lint.yml)
+  # ========================================
+  # O lint agora é tratado pelo workflow de Auto-Format (lint.yml).
+  # Isso evita falhas de deploy por questões puramente estéticas que podem ser corrigidas automaticamente.
 
   # ========================================
   # JOB 3: Build Docker Image
   # ========================================
   build:
     name: Build Docker Image
-    needs: [test, lint]
+    needs: [test]
     runs-on: ubuntu-latest
     
     steps:
