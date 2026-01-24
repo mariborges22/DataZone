@@ -56,9 +56,7 @@ def validate_gdf(gdf: gpd.GeoDataFrame, layer_name: str) -> gpd.GeoDataFrame:
         logger.warning(
             f"Encontradas {invalid_geoms.sum()} geometrias inválidas. Tentando corrigir..."
         )
-        gdf.loc[invalid_geoms, "geometry"] = gdf.loc[invalid_geoms, "geometry"].buffer(
-            0
-        )
+        gdf.loc[invalid_geoms, "geometry"] = gdf.loc[invalid_geoms, "geometry"].buffer(0)
 
     # Remover geometrias vazias
     gdf = gdf[~gdf.geometry.is_empty].copy()
@@ -121,11 +119,7 @@ def process_subestacoes(gdb_path: str, layer_name: str = None) -> None:
                 "se",
             ]
             layer_name = next(
-                (
-                    l
-                    for l in layers
-                    if any(name in l.lower() for name in possible_names)
-                ),
+                (l for l in layers if any(name in l.lower() for name in possible_names)),
                 layers[0] if layers else None,
             )
 

@@ -37,9 +37,7 @@ async def get_subestacoes(
     request: Request,
     db: AsyncSession = Depends(get_db),
     # Filtros geográficos
-    bbox: Optional[str] = Query(
-        None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"
-    ),
+    bbox: Optional[str] = Query(None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"),
     uf: Optional[str] = Query(None, max_length=2, description="Unidade Federativa"),
     municipio: Optional[str] = Query(None, description="Nome do município"),
     # Filtros técnicos
@@ -50,9 +48,7 @@ async def get_subestacoes(
     skip: int = Query(0, ge=0, description="Registros para pular"),
     limit: int = Query(100, ge=1, le=1000, description="Máximo de registros"),
     # Simplificação
-    simplify: bool = Query(
-        True, description="Simplificar geometrias para reduzir tamanho"
-    ),
+    simplify: bool = Query(True, description="Simplificar geometrias para reduzir tamanho"),
 ):
     """
     Retorna subestações em formato GeoJSON
@@ -76,22 +72,18 @@ async def get_subestacoes(
         # Adicionar geometria (simplificada ou não)
         if simplify:
             query = query.add_columns(
-                ST_AsGeoJSON(
-                    ST_Simplify(Subestacao.geometry, settings.SIMPLIFY_TOLERANCE)
-                ).label("geometry")
+                ST_AsGeoJSON(ST_Simplify(Subestacao.geometry, settings.SIMPLIFY_TOLERANCE)).label(
+                    "geometry"
+                )
             )
         else:
-            query = query.add_columns(
-                ST_AsGeoJSON(Subestacao.geometry).label("geometry")
-            )
+            query = query.add_columns(ST_AsGeoJSON(Subestacao.geometry).label("geometry"))
 
         # Aplicar filtros
         if bbox:
             # SEGURANÇA: Validar bbox antes de usar
             if not security.validate_bbox(bbox):
-                raise HTTPException(
-                    status_code=400, detail="Bounding box inválido ou muito grande"
-                )
+                raise HTTPException(status_code=400, detail="Bounding box inválido ou muito grande")
 
             try:
                 min_lon, min_lat, max_lon, max_lat = map(float, bbox.split(","))
@@ -142,18 +134,14 @@ async def get_subestacoes(
                 else:
                     properties[key] = value
 
-            features.append(
-                {"type": "Feature", "geometry": geometry, "properties": properties}
-            )
+            features.append({"type": "Feature", "geometry": geometry, "properties": properties})
 
         return {"type": "FeatureCollection", "features": features}
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao buscar subestações: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar subestações: {str(e)}")
 
 
 @router.get(
@@ -212,6 +200,4 @@ async def get_subestacao_by_id(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao buscar subestação: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar subestação: {str(e)}")

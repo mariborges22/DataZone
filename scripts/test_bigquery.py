@@ -12,28 +12,29 @@ from google.cloud import bigquery
 # Configurar credenciais
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/secrets/gpc-service-account.json"
 
+
 def test_bigquery_connection():
     """Testa conexão com BigQuery e acesso ao projeto público basedosdados."""
-    
+
     print("=" * 80)
     print("TESTE DE CONEXÃO BIGQUERY")
     print("=" * 80)
-    
+
     # 1. Criar cliente (billing no seu projeto)
     print("\n1. Criando cliente BigQuery...")
-    client = bigquery.Client(project='causal-tracker-484821-f1')
+    client = bigquery.Client(project="causal-tracker-484821-f1")
     print(f"   ✅ Cliente criado | Projeto de billing: {client.project}")
-    
+
     # 2. Teste simples
     print("\n2. Testando query simples...")
     query_test = "SELECT 1 as test"
     job = client.query(query_test)
     result = job.result()
     print(f"   ✅ Query executada | Job ID: {job.job_id}")
-    
+
     # 3. Testar acesso ao projeto público basedosdados
     print("\n3. Testando acesso ao projeto público basedosdados...")
-    
+
     # Query que acessa EXPLICITAMENTE o projeto basedosdados
     query_basedosdados = """
     SELECT 
@@ -47,14 +48,14 @@ def test_bigquery_connection():
     GROUP BY ano
     LIMIT 1
     """
-    
+
     print("   Executando query no projeto basedosdados...")
     job_config = bigquery.QueryJobConfig(use_query_cache=False)
     job = client.query(query_basedosdados, job_config=job_config)
-    
+
     # Aguardar resultado
     df = job.to_dataframe()
-    
+
     print(f"   ✅ Query executada com sucesso!")
     print(f"   📊 Resultados encontrados:")
     print(df.to_string(index=False))
@@ -63,11 +64,11 @@ def test_bigquery_connection():
     print(f"      - Bytes processados: {bytes_processed:,}")
     print(f"      - Tempo de execução: {job.ended - job.started}")
     print(f"      - Job criado em: {job.project}")
-    
+
     # 4. Listar datasets do projeto basedosdados (opcional)
     print("\n4. Listando alguns datasets do projeto basedosdados...")
     try:
-        datasets = list(client.list_datasets(project='basedosdados', max_results=5))
+        datasets = list(client.list_datasets(project="basedosdados", max_results=5))
         if datasets:
             print("   Datasets encontrados:")
             for dataset in datasets:
@@ -76,7 +77,7 @@ def test_bigquery_connection():
             print("   ⚠️ Nenhum dataset listado (pode ser limitação de permissões)")
     except Exception as e:
         print(f"   ⚠️ Não foi possível listar datasets: {e}")
-    
+
     print("\n" + "=" * 80)
     print("✅ TODOS OS TESTES PASSARAM!")
     print("=" * 80)
@@ -102,4 +103,5 @@ if __name__ == "__main__":
         print("2. Service Account tem permissões: BigQuery Data Viewer, BigQuery Job User")
         print("3. Projeto causal-tracker-484821-f1 tem billing habilitado")
         import traceback
+
         traceback.print_exc()

@@ -48,9 +48,7 @@ def explore_gdb(gdb_path: str):
                 gdf = gpd.read_file(gdb_path, layer=layer, rows=5)
 
                 print(f"\n📊 Informações:")
-                print(
-                    f"  - Total de registros: {len(gpd.read_file(gdb_path, layer=layer))}"
-                )
+                print(f"  - Total de registros: {len(gpd.read_file(gdb_path, layer=layer))}")
                 print(f"  - Tipo de geometria: {gdf.geometry.type.unique().tolist()}")
                 print(f"  - CRS: {gdf.crs}")
 
@@ -141,12 +139,8 @@ def explore_csv(csv_path: str):
         possible_lat_cols = ["latitude", "lat", "y", "coord_y"]
         possible_lon_cols = ["longitude", "lon", "long", "x", "coord_x"]
 
-        lat_col = next(
-            (col for col in df_full.columns if col.lower() in possible_lat_cols), None
-        )
-        lon_col = next(
-            (col for col in df_full.columns if col.lower() in possible_lon_cols), None
-        )
+        lat_col = next((col for col in df_full.columns if col.lower() in possible_lat_cols), None)
+        lon_col = next((col for col in df_full.columns if col.lower() in possible_lon_cols), None)
 
         if lat_col and lon_col:
             print(f"\n📍 Coordenadas encontradas:")

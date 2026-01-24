@@ -34,9 +34,7 @@ async def get_linhas(
     request: Request,
     db: AsyncSession = Depends(get_db),
     # Filtros geográficos
-    bbox: Optional[str] = Query(
-        None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"
-    ),
+    bbox: Optional[str] = Query(None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"),
     # Filtros técnicos
     tensao_min: Optional[float] = Query(None, ge=0, description="Tensão mínima (kV)"),
     tensao_max: Optional[float] = Query(None, ge=0, description="Tensão máxima (kV)"),
@@ -47,9 +45,7 @@ async def get_linhas(
     skip: int = Query(0, ge=0, description="Registros para pular"),
     limit: int = Query(100, ge=1, le=1000, description="Máximo de registros"),
     # Simplificação
-    simplify: bool = Query(
-        True, description="Simplificar geometrias para reduzir tamanho"
-    ),
+    simplify: bool = Query(True, description="Simplificar geometrias para reduzir tamanho"),
 ):
     """
     Retorna linhas de transmissão em formato GeoJSON
@@ -78,9 +74,7 @@ async def get_linhas(
                 ).label("geometry")
             )
         else:
-            query = query.add_columns(
-                ST_AsGeoJSON(LinhaTransmissao.geometry).label("geometry")
-            )
+            query = query.add_columns(ST_AsGeoJSON(LinhaTransmissao.geometry).label("geometry"))
 
         # Aplicar filtros
         if bbox:
@@ -129,9 +123,7 @@ async def get_linhas(
                 else:
                     properties[key] = value
 
-            features.append(
-                {"type": "Feature", "geometry": geometry, "properties": properties}
-            )
+            features.append({"type": "Feature", "geometry": geometry, "properties": properties})
 
         return {"type": "FeatureCollection", "features": features}
 

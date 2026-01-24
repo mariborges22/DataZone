@@ -32,9 +32,7 @@ class Subestacao(Base):
 
     # Metadados
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     data_source = Column(String(100), default="ANEEL")
 
     def __repr__(self):

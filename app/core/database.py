@@ -22,11 +22,13 @@ Base = declarative_base()
 # ============================================
 import os
 
+
 # Função para garantir URL correta para drivers assíncronos
 def get_async_database_url(url: str) -> str:
     if url and url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
+
 
 # Obter URL do ambiente (prioridade sobre settings)
 DATABASE_URL = os.getenv("DATABASE_URL", settings.DATABASE_URL)
