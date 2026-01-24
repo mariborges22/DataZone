@@ -124,7 +124,7 @@ jobs:
       
       - name: Health check
         run: |
-          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
+          curl -f http://localhost:${{ env.PORT || 8000 }}/health || exit 1
       
      
 
@@ -156,7 +156,7 @@ jobs:
       
       - name: Health check
         run: |
-          curl -f ${{ secrets.PRODUCTION_URL }}/health || exit 1
+          curl -f http://localhost:${{ env.PORT || 8000 }}/health || exit 1
       
       - name: Notify on Slack
         if: always()

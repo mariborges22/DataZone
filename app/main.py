@@ -100,7 +100,10 @@ async def health_check(request: Request):
     """
     Endpoint de health check para monitoramento
     """
-    db_status = check_db_connection()
+    try:
+        db_status = check_db_connection()
+    except Exception:
+        db_status = False
 
     return JSONResponse(
         status_code=200 if db_status else 503,
@@ -167,12 +170,15 @@ async def global_exception_handler(request, exc):
 
 
 if __name__ == "__main__":
+    import os
     import uvicorn
 
+    port = int(os.environ.get("PORT", 8000))
+    
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower(),
     )
