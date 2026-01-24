@@ -117,7 +117,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_1}}
         run: |
-          railway up datazone-api-energy
+          railway up --service datazone-api-energy
       
       - name: Wait for deployment
         run: sleep 30
