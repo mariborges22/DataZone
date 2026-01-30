@@ -24,7 +24,9 @@ class ZoneamentoSP(Base):
     id_original = Column(String(255), primary_key=True, index=True)
 
     # Identificação legal
-    cd_tipo_legislacao_zoneamento = Column(String(50), comment="Tipo da legislação (lei, decreto, etc.)")
+    cd_tipo_legislacao_zoneamento = Column(
+        String(50), comment="Tipo da legislação (lei, decreto, etc.)"
+    )
     cd_numero_legislacao_zoneamento = Column(String(50), comment="Número da lei/decreto")
     an_legislacao_zoneamento = Column(Integer, comment="Ano da legislação", index=True)
 
@@ -33,26 +35,25 @@ class ZoneamentoSP(Base):
         String(100),
         nullable=False,
         index=True,
-        comment="Código do zoneamento (ex: ZEU, ZM-3, ZEIS-1)"
+        comment="Código do zoneamento (ex: ZEU, ZM-3, ZEIS-1)",
     )
-    tx_zoneamento_perimetro = Column(
-        String(500),
-        comment="Descrição/nome textual do zoneamento"
-    )
+    tx_zoneamento_perimetro = Column(String(500), comment="Descrição/nome textual do zoneamento")
 
     # Metadados administrativos
     cd_identificador = Column(String(100), comment="Identificador interno")
     tx_observacao_perimetro = Column(String(1000), comment="Observações sobre o perímetro")
 
     # Auditoria
-    dt_atualizacao = Column(DateTime(timezone=True), comment="Data de atualização no sistema origem")
+    dt_atualizacao = Column(
+        DateTime(timezone=True), comment="Data de atualização no sistema origem"
+    )
     cd_usuario_atualizacao = Column(String(100), comment="Usuário que realizou atualização")
 
     # Geometria (MULTIPOLYGON em EPSG:4326 / WGS84)
     geometry = Column(
         Geometry(geometry_type="MULTIPOLYGON", srid=4326),
         nullable=False,
-        comment="Polígono do perímetro de zoneamento"
+        comment="Polígono do perímetro de zoneamento",
     )
 
     # Metadados de carga

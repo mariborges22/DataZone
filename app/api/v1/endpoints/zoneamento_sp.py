@@ -36,24 +36,16 @@ async def get_zoneamento(
     response: Response,
     db: AsyncSession = Depends(get_db),
     # Filtros geográficos
-    bbox: Optional[str] = Query(
-        None,
-        description="Bounding box: min_lon,min_lat,max_lon,max_lat"
-    ),
+    bbox: Optional[str] = Query(None, description="Bounding box: min_lon,min_lat,max_lon,max_lat"),
     # Filtros de zoneamento
     cd_zoneamento_perimetro: Optional[str] = Query(
-        None,
-        description="Código do zoneamento (ex: ZEPAM, ZC, ZEIS-1, ZM, ZER-1)"
+        None, description="Código do zoneamento (ex: ZEPAM, ZC, ZEIS-1, ZM, ZER-1)"
     ),
     an_legislacao_zoneamento: Optional[int] = Query(
-        None,
-        ge=1900,
-        le=2100,
-        description="Ano da legislação"
+        None, ge=1900, le=2100, description="Ano da legislação"
     ),
     cd_tipo_legislacao_zoneamento: Optional[str] = Query(
-        None,
-        description="Tipo da legislação (lei, decreto, etc.)"
+        None, description="Tipo da legislação (lei, decreto, etc.)"
     ),
     # Paginação
     skip: int = Query(0, ge=0, description="Registros para pular"),
@@ -61,10 +53,7 @@ async def get_zoneamento(
     # Simplificação (MUITO importante para polígonos!)
     simplify: bool = Query(True, description="Simplificar geometrias para reduzir tamanho"),
     simplify_tolerance: Optional[float] = Query(
-        None,
-        ge=0.0001,
-        le=0.01,
-        description="Tolerância de simplificação (padrão: 0.001)"
+        None, ge=0.0001, le=0.01, description="Tolerância de simplificação (padrão: 0.001)"
     ),
 ):
     """
@@ -114,8 +103,7 @@ async def get_zoneamento(
                 # Validar bbox para São Paulo (aproximadamente)
                 if not (-47.0 <= min_lon <= -46.0 and -24.0 <= min_lat <= -23.0):
                     raise HTTPException(
-                        status_code=400,
-                        detail="Bounding box fora dos limites de São Paulo"
+                        status_code=400, detail="Bounding box fora dos limites de São Paulo"
                     )
 
                 envelope = ST_MakeEnvelope(min_lon, min_lat, max_lon, max_lat, 4326)
@@ -130,9 +118,7 @@ async def get_zoneamento(
             )
 
         if an_legislacao_zoneamento:
-            query = query.where(
-                ZoneamentoSP.an_legislacao_zoneamento == an_legislacao_zoneamento
-            )
+            query = query.where(ZoneamentoSP.an_legislacao_zoneamento == an_legislacao_zoneamento)
 
         if cd_tipo_legislacao_zoneamento:
             query = query.where(
@@ -165,11 +151,7 @@ async def get_zoneamento(
                 else:
                     properties[key] = value
 
-            features.append({
-                "type": "Feature",
-                "geometry": geometry,
-                "properties": properties
-            })
+            features.append({"type": "Feature", "geometry": geometry, "properties": properties})
 
         return {
             "type": "FeatureCollection",
@@ -179,17 +161,14 @@ async def get_zoneamento(
                 "skip": skip,
                 "limit": limit,
                 "simplified": simplify,
-                "tolerance": tolerance if simplify else None
-            }
+                "tolerance": tolerance if simplify else None,
+            },
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao buscar zoneamento: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar zoneamento: {str(e)}")
 
 
 @router.get(
@@ -227,14 +206,12 @@ async def get_zoneamento_by_id(
         # Adicionar geometria
         if simplify:
             query = query.add_columns(
-                ST_AsGeoJSON(
-                    ST_Simplify(ZoneamentoSP.geometry, settings.SIMPLIFY_TOLERANCE)
-                ).label("geometry")
+                ST_AsGeoJSON(ST_Simplify(ZoneamentoSP.geometry, settings.SIMPLIFY_TOLERANCE)).label(
+                    "geometry"
+                )
             )
         else:
-            query = query.add_columns(
-                ST_AsGeoJSON(ZoneamentoSP.geometry).label("geometry")
-            )
+            query = query.add_columns(ST_AsGeoJSON(ZoneamentoSP.geometry).label("geometry"))
 
         query = query.where(ZoneamentoSP.id_original == zoneamento_id)
 
@@ -243,8 +220,7 @@ async def get_zoneamento_by_id(
 
         if not row:
             raise HTTPException(
-                status_code=404,
-                detail=f"Zoneamento com ID {zoneamento_id} não encontrado"
+                status_code=404, detail=f"Zoneamento com ID {zoneamento_id} não encontrado"
             )
 
         # Converter para GeoJSON Feature
@@ -261,19 +237,12 @@ async def get_zoneamento_by_id(
             else:
                 properties[key] = value
 
-        return {
-            "type": "Feature",
-            "geometry": geometry,
-            "properties": properties
-        }
+        return {"type": "Feature", "geometry": geometry, "properties": properties}
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao buscar zoneamento: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar zoneamento: {str(e)}")
 
 
 @router.get(
@@ -306,19 +275,28 @@ async def get_zoneamento_stats(
         total = total_result.scalar()
 
         # Tipos de zoneamento únicos
-        tipos_query = select(
-            ZoneamentoSP.cd_zoneamento_perimetro,
-            func.count(ZoneamentoSP.id_original).label("count")
-        ).group_by(ZoneamentoSP.cd_zoneamento_perimetro).order_by(func.count(ZoneamentoSP.id_original).desc()).limit(20)
+        tipos_query = (
+            select(
+                ZoneamentoSP.cd_zoneamento_perimetro,
+                func.count(ZoneamentoSP.id_original).label("count"),
+            )
+            .group_by(ZoneamentoSP.cd_zoneamento_perimetro)
+            .order_by(func.count(ZoneamentoSP.id_original).desc())
+            .limit(20)
+        )
 
         tipos_result = await db.execute(tipos_query)
         tipos = [{"codigo": row[0], "count": row[1]} for row in tipos_result.all()]
 
         # Anos de legislação
-        anos_query = select(
-            ZoneamentoSP.an_legislacao_zoneamento,
-            func.count(ZoneamentoSP.id_original).label("count")
-        ).group_by(ZoneamentoSP.an_legislacao_zoneamento).order_by(ZoneamentoSP.an_legislacao_zoneamento.desc())
+        anos_query = (
+            select(
+                ZoneamentoSP.an_legislacao_zoneamento,
+                func.count(ZoneamentoSP.id_original).label("count"),
+            )
+            .group_by(ZoneamentoSP.an_legislacao_zoneamento)
+            .order_by(ZoneamentoSP.an_legislacao_zoneamento.desc())
+        )
 
         anos_result = await db.execute(anos_query)
         anos = [{"ano": row[0], "count": row[1]} for row in anos_result.all() if row[0] is not None]
@@ -327,11 +305,8 @@ async def get_zoneamento_stats(
             "total_poligonos": total,
             "tipos_zoneamento": tipos,
             "anos_legislacao": anos,
-            "fonte": "BigQuery - Lei 18.177/2024"
+            "fonte": "BigQuery - Lei 18.177/2024",
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao calcular estatísticas: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro ao calcular estatísticas: {str(e)}")
