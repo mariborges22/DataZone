@@ -106,7 +106,6 @@ class AnatelBigQueryETL:
             # Teste de conexão (job criado no projeto faturador)
             query_test = "SELECT 1 as test"
             job_config = bigquery.QueryJobConfig(
-                use_query_cache=False,  # Desabilitar cache para monitoramento preciso no MVP
                 use_legacy_sql=False,
             )
             result = self.bq_client.query(query_test, job_config=job_config).result()
@@ -171,7 +170,6 @@ class AnatelBigQueryETL:
 
             # Configurar job (criado no projeto faturador, mas query acessa dados públicos)
             job_config = bigquery.QueryJobConfig(
-                use_query_cache=False,  # Desabilitar cache para monitoramento preciso no MVP
                 use_legacy_sql=False,
             )
 
