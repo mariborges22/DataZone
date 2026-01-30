@@ -14,6 +14,7 @@ numpy==1.26.3
 # Banco de dados PostgreSQL
 sqlalchemy==2.0.25
 psycopg2-binary==2.9.9
+geoalchemy2==0.14.3
 
 # Configuração e ambiente
 python-dotenv==1.0.0
