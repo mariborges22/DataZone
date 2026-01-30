@@ -222,11 +222,13 @@ class ZoneamentoSPETL:
         df["data_source"] = "BIGQUERY_SP_ZONEAMENTO"
 
         # Tratar valores nulos
-        df = df.fillna({
-            "tx_observacao_perimetro": "",
-            "cd_identificador": "",
-            "cd_usuario_atualizacao": "",
-        })
+        df = df.fillna(
+            {
+                "tx_observacao_perimetro": "",
+                "cd_identificador": "",
+                "cd_usuario_atualizacao": "",
+            }
+        )
 
         logger.info(f"Dados preparados | Linhas: {len(df):,} | Colunas: {list(df.columns)}")
         return df
@@ -300,44 +302,28 @@ class ZoneamentoSPETL:
 
             with self.pg_engine.connect() as conn:
                 # Índice espacial (PostGIS cria automaticamente com GIST)
-                conn.execute(
-                    text(
-                        f"""
+                conn.execute(text(f"""
                     CREATE INDEX IF NOT EXISTS idx_{table_name}_geometry
                     ON geo.{table_name} USING GIST (geometry)
-                """
-                    )
-                )
+                """))
 
                 # Índice por código de zoneamento
-                conn.execute(
-                    text(
-                        f"""
+                conn.execute(text(f"""
                     CREATE INDEX IF NOT EXISTS idx_{table_name}_codigo
                     ON geo.{table_name} (cd_zoneamento_perimetro)
-                """
-                    )
-                )
+                """))
 
                 # Índice por ano da legislação
-                conn.execute(
-                    text(
-                        f"""
+                conn.execute(text(f"""
                     CREATE INDEX IF NOT EXISTS idx_{table_name}_ano
                     ON geo.{table_name} (an_legislacao_zoneamento)
-                """
-                    )
-                )
+                """))
 
                 # Índice por id_original
-                conn.execute(
-                    text(
-                        f"""
+                conn.execute(text(f"""
                     CREATE INDEX IF NOT EXISTS idx_{table_name}_id_original
                     ON geo.{table_name} (id_original)
-                """
-                    )
-                )
+                """))
 
                 conn.commit()
 
@@ -421,7 +407,9 @@ def main():
         sys.exit(1)
 
     if bigquery_dataset == "SEU_DATASET_AQUI" or bigquery_table == "SUA_TABELA_CURADA_AQUI":
-        logger.error("⚠️ Configure BIGQUERY_DATASET e BIGQUERY_TABLE no .env ou nas variáveis de ambiente!")
+        logger.error(
+            "⚠️ Configure BIGQUERY_DATASET e BIGQUERY_TABLE no .env ou nas variáveis de ambiente!"
+        )
         logger.error("Exemplo no .env:")
         logger.error("  BIGQUERY_DATASET=zoneamento_sp")
         logger.error("  BIGQUERY_TABLE=zoneamento_curado")
