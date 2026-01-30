@@ -141,6 +141,10 @@ services:
       ETL_MAX_RETRIES: ${ETL_MAX_RETRIES:-3}
       ETL_RETRY_DELAY_SECONDS: ${ETL_RETRY_DELAY_SECONDS:-5}
 
+      # BigQuery Configuration
+      BIGQUERY_DATASET: ${BIGQUERY_DATASET:-datazone_curated}
+      BIGQUERY_TABLE: ${BIGQUERY_TABLE:-zoneamento_sp_lei_18177_2024}
+
       # Logging
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
