@@ -39,23 +39,18 @@ class ZoneamentoSPFilter(BaseModel):
     """Filtros para busca de zoneamento"""
 
     cd_zoneamento_perimetro: Optional[str] = Field(
-        None,
-        description="Código do zoneamento (ex: ZEPAM, ZC, ZEIS-1, ZM, ZER-1)"
+        None, description="Código do zoneamento (ex: ZEPAM, ZC, ZEIS-1, ZM, ZER-1)"
     )
     an_legislacao_zoneamento: Optional[int] = Field(
-        None,
-        ge=1900,
-        le=2100,
-        description="Ano da legislação"
+        None, ge=1900, le=2100, description="Ano da legislação"
     )
     cd_tipo_legislacao_zoneamento: Optional[str] = Field(
-        None,
-        description="Tipo da legislação (lei, decreto, etc.)"
+        None, description="Tipo da legislação (lei, decreto, etc.)"
     )
     bbox: Optional[str] = Field(
         None,
         description="Bounding box (min_lon,min_lat,max_lon,max_lat)",
-        pattern=r"^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$"
+        pattern=r"^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$",
     )
 
 
