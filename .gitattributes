@@ -1,0 +1,9 @@
+# Força arquivos Python a usarem LF (Unix line endings)
+*.py text eol=lf
+
+# Outros arquivos de texto comuns
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf
