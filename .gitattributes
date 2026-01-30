@@ -1,9 +1,54 @@
 # Força arquivos Python a usarem LF (Unix line endings)
 *.py text eol=lf
+*.pyi text eol=lf
+*.pyx text eol=lf
 
-# Outros arquivos de texto comuns
+# Configuração e dependências Python
+*.cfg text eol=lf
+*.ini text eol=lf
+*.toml text eol=lf
+requirements*.txt text eol=lf
+Pipfile text eol=lf
+pyproject.toml text eol=lf
+
+# Templates e dados
+*.sql text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Documentação e configuração
 *.md text eol=lf
+*.rst text eol=lf
 *.json text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.txt text eol=lf
+*.xml text eol=lf
+
+# Git e outros
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.env.example text eol=lf
+
+# Arquivos binários (não converter)
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.pkl binary
+*.pickle binary
+*.pyc binary
+*.pyo binary
+*.pyd binary
+*.so binary
+*.dll binary
+*.dylib binary
+*.exe binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
