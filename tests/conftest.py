@@ -22,6 +22,7 @@ def mock_db_connection(monkeypatch):
 
     """
     import os
+
     # Se for teste de integração, NÃO aplicar os mocks de banco e permitir conexão real
     if os.getenv("TEST_TYPE") == "integration":
         return
