@@ -25,10 +25,13 @@ from sqlalchemy import create_engine, text
 # Adicionar diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.config import settings
+from app.config import settings  # noqa: E402
 
 # Caminho do arquivo GDB
-GDB_PATH = Path("data/raw/Enel_SP_390_2024-12-31_V11_20250926-0906.gdb/Enel_SP_390_2024-12-31_V11_20250926-0906.gdb")
+GDB_PATH = Path(
+    "data/raw/Enel_SP_390_2024-12-31_V11_20250926-0906.gdb"
+    "/Enel_SP_390_2024-12-31_V11_20250926-0906.gdb"
+)
 
 # Camadas com geometria
 GEO_LAYERS = {
@@ -76,7 +79,10 @@ def setup_logging():
     logger.remove()
     logger.add(
         sys.stdout,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+        format=(
+            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | <level>{message}</level>"
+        ),
         level="INFO",
     )
     logger.add(
@@ -104,9 +110,7 @@ def validate_gdf(gdf: gpd.GeoDataFrame, layer_name: str) -> gpd.GeoDataFrame:
     # Remover geometrias inválidas
     invalid_geoms = ~gdf.geometry.is_valid
     if invalid_geoms.any():
-        logger.warning(
-            f"Encontradas {invalid_geoms.sum()} geometrias inválidas. Corrigindo..."
-        )
+        logger.warning(f"Encontradas {invalid_geoms.sum()} geometrias inválidas. Corrigindo...")
         gdf.loc[invalid_geoms, "geometry"] = gdf.loc[invalid_geoms, "geometry"].buffer(0)
 
     # Remover geometrias vazias

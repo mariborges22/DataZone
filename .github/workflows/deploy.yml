@@ -16,7 +16,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgis/postgis:15-3.3-alpine
@@ -31,62 +31,80 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio httpx
-      
+
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
-          ASYNC_DATABASE_URL: postgresql+asyncpg://test_user:test_pass@localhost:5432/test_db
+          DATABASE_URL: >-
+            postgresql://test_user:test_pass@localhost:5432/test_db
+          ASYNC_DATABASE_URL: >-
+            postgresql+asyncpg://test_user:test_pass@localhost:5432/test_db
           SECRET_KEY: test_secret_key_for_ci
           ENVIRONMENT: test
         run: |
           pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
-      
+
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           fail_ci_if_error: false
 
   # ========================================
-  # JOB 2: Linting e Code Quality
+  # JOB 2: Lint Check (erros críticos)
   # ========================================
-  # ========================================
-  # JOB 2: Linting e Code Quality (Delegado para lint.yml)
-  # ========================================
-  # O lint agora é tratado pelo workflow de Auto-Format (lint.yml).
-  # Isso evita falhas de deploy por questões puramente estéticas que podem ser corrigidas automaticamente.
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Check for critical errors (syntax, undefined names)
+        run: |
+          flake8 app/ scripts/ --count --select=E9,F63,F7,F82 \
+            --show-source --statistics
 
   # ========================================
   # JOB 3: Build Docker Image
   # ========================================
   build:
     name: Build Docker Image
-    needs: [test]
+    needs: [test, lint]
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
@@ -105,28 +123,37 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     environment: staging
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-      
+
       - name: Deploy to Railway (Staging)
+        id: deploy
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_1}}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_1 }}
         run: |
           railway up --service DataZone
-      
-      - name: Wait for deployment
-        run: sleep 30
-      
-      - name: Health check
+
+      - name: Health check (with retry)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_1 }}
+          DEPLOY_URL: ${{ vars.STAGING_URL }}
         run: |
-          curl -f http://localhost:${{ env.PORT || 8000 }}/health || exit 1
-      
-     
+          echo "Waiting for deployment to stabilize..."
+          for i in $(seq 1 10); do
+            if curl -sf "${DEPLOY_URL}/health" > /dev/null 2>&1; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i/10 failed, retrying in 15s..."
+            sleep 15
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
 
   # ========================================
   # JOB 5: Deploy to Production
@@ -137,35 +164,44 @@ jobs:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-      
+
       - name: Deploy to Railway (Production)
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROD_TOKEN }}
         run: |
           railway up --service datazone-api-production
-      
-      - name: Wait for deployment
-        run: sleep 30
-      
-      - name: Health check
+
+      - name: Health check (with retry)
+        env:
+          DEPLOY_URL: ${{ vars.PRODUCTION_URL }}
         run: |
-          curl -f http://localhost:${{ env.PORT || 8000 }}/health || exit 1
-      
+          echo "Waiting for deployment to stabilize..."
+          for i in $(seq 1 10); do
+            if curl -sf "${DEPLOY_URL}/health" > /dev/null 2>&1; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i/10 failed, retrying in 15s..."
+            sleep 15
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
+
       - name: Notify on Slack
         if: always()
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: '🚀 Production deployment ${{ job.status }}'
+          text: 'Production deployment ${{ job.status }}'
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-      
+
       - name: Create Sentry release
         if: success()
         uses: getsentry/action-release@v1

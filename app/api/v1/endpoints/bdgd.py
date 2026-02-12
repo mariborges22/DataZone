@@ -105,7 +105,11 @@ async def get_bdgd_sub(
 ):
     try:
         query = select(
-            BdgdSub.id, BdgdSub.cod_id, BdgdSub.dist, BdgdSub.pos, BdgdSub.nome,
+            BdgdSub.id,
+            BdgdSub.cod_id,
+            BdgdSub.dist,
+            BdgdSub.pos,
+            BdgdSub.nome,
         )
         query = _add_geometry_column(query, BdgdSub, simplify)
 
@@ -149,9 +153,16 @@ async def get_bdgd_ssdat(
 ):
     try:
         query = select(
-            BdgdSsdat.id, BdgdSsdat.cod_id, BdgdSsdat.ctat, BdgdSsdat.ct_cod_op,
-            BdgdSsdat.conj, BdgdSsdat.dist, BdgdSsdat.fas_con, BdgdSsdat.tip_inst,
-            BdgdSsdat.tip_cnd, BdgdSsdat.comp,
+            BdgdSsdat.id,
+            BdgdSsdat.cod_id,
+            BdgdSsdat.ctat,
+            BdgdSsdat.ct_cod_op,
+            BdgdSsdat.conj,
+            BdgdSsdat.dist,
+            BdgdSsdat.fas_con,
+            BdgdSsdat.tip_inst,
+            BdgdSsdat.tip_cnd,
+            BdgdSsdat.comp,
         )
         query = _add_geometry_column(query, BdgdSsdat, simplify)
 
@@ -199,9 +210,17 @@ async def get_bdgd_untrat(
 ):
     try:
         query = select(
-            BdgdUntrat.id, BdgdUntrat.cod_id, BdgdUntrat.sub, BdgdUntrat.dist,
-            BdgdUntrat.sit_ativ, BdgdUntrat.tip_unid, BdgdUntrat.pot_nom,
-            BdgdUntrat.per_fer, BdgdUntrat.per_tot, BdgdUntrat.conj, BdgdUntrat.mun,
+            BdgdUntrat.id,
+            BdgdUntrat.cod_id,
+            BdgdUntrat.sub,
+            BdgdUntrat.dist,
+            BdgdUntrat.sit_ativ,
+            BdgdUntrat.tip_unid,
+            BdgdUntrat.pot_nom,
+            BdgdUntrat.per_fer,
+            BdgdUntrat.per_tot,
+            BdgdUntrat.conj,
+            BdgdUntrat.mun,
             BdgdUntrat.tip_trafo,
         )
         query = _add_geometry_column(query, BdgdUntrat, simplify)
@@ -243,7 +262,11 @@ async def get_bdgd_arat(
 ):
     try:
         query = select(
-            BdgdArat.id, BdgdArat.cod_id, BdgdArat.dist, BdgdArat.fun_pr, BdgdArat.fun_te,
+            BdgdArat.id,
+            BdgdArat.cod_id,
+            BdgdArat.dist,
+            BdgdArat.fun_pr,
+            BdgdArat.fun_te,
         )
         query = _add_geometry_column(query, BdgdArat, simplify)
 
@@ -280,8 +303,12 @@ async def get_bdgd_ctat(
 ):
     try:
         query = select(
-            BdgdCtat.id, BdgdCtat.cod_id, BdgdCtat.nome, BdgdCtat.ten_nom,
-            BdgdCtat.pac_ini, BdgdCtat.dist,
+            BdgdCtat.id,
+            BdgdCtat.cod_id,
+            BdgdCtat.nome,
+            BdgdCtat.ten_nom,
+            BdgdCtat.pac_ini,
+            BdgdCtat.dist,
         )
 
         if cod_id:
@@ -324,9 +351,17 @@ async def get_bdgd_eqtrat(
 ):
     try:
         query = select(
-            BdgdEqtrat.id, BdgdEqtrat.cod_id, BdgdEqtrat.tip_inst, BdgdEqtrat.uni_tr_at,
-            BdgdEqtrat.clas_ten, BdgdEqtrat.pot_nom, BdgdEqtrat.ten_pri, BdgdEqtrat.ten_sec,
-            BdgdEqtrat.ten_ter, BdgdEqtrat.per_fer, BdgdEqtrat.per_tot,
+            BdgdEqtrat.id,
+            BdgdEqtrat.cod_id,
+            BdgdEqtrat.tip_inst,
+            BdgdEqtrat.uni_tr_at,
+            BdgdEqtrat.clas_ten,
+            BdgdEqtrat.pot_nom,
+            BdgdEqtrat.ten_pri,
+            BdgdEqtrat.ten_sec,
+            BdgdEqtrat.ten_ter,
+            BdgdEqtrat.per_fer,
+            BdgdEqtrat.per_tot,
         )
 
         if cod_id:
@@ -368,8 +403,14 @@ async def get_bdgd_segcon(
 ):
     try:
         query = select(
-            BdgdSegcon.id, BdgdSegcon.cod_id, BdgdSegcon.dist, BdgdSegcon.r1,
-            BdgdSegcon.x1, BdgdSegcon.cnom, BdgdSegcon.cap_max, BdgdSegcon.r_regul,
+            BdgdSegcon.id,
+            BdgdSegcon.cod_id,
+            BdgdSegcon.dist,
+            BdgdSegcon.r1,
+            BdgdSegcon.x1,
+            BdgdSegcon.cnom,
+            BdgdSegcon.cap_max,
+            BdgdSegcon.r_regul,
         )
 
         if cod_id:
@@ -390,4 +431,6 @@ async def get_bdgd_segcon(
         return {"total": len(data), "data": data}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar segmentos condutores: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao buscar segmentos condutores: {str(e)}"
+        )
