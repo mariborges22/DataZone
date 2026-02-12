@@ -110,7 +110,7 @@ async def init_db() -> None:
     """
     async with async_engine.begin() as conn:
         # Importar todos os modelos aqui para garantir que sejam registrados
-        from app.models import fibra_optica, linha_transmissao, subestacao, zoneamento_sp
+        from app.models import bdgd, fibra_optica, linha_transmissao, subestacao, zoneamento_sp
 
         # Criar todas as tabelas
         await conn.run_sync(Base.metadata.create_all)
