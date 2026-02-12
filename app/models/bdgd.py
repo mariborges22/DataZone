@@ -8,7 +8,6 @@ from sqlalchemy import Column, DateTime, Integer, Numeric, String, Text, func
 
 from app.core.database import Base
 
-
 # ============================================
 # Camadas com geometria
 # ============================================
@@ -64,9 +63,7 @@ class BdgdSsdat(Base):
     comp = Column(Numeric)
     descr = Column(Text)
 
-    geometry = Column(
-        Geometry(geometry_type="MULTILINESTRING", srid=4326), nullable=False
-    )
+    geometry = Column(Geometry(geometry_type="MULTILINESTRING", srid=4326), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     data_source = Column(String(100), default="BDGD_ENEL_SP")
