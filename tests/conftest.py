@@ -14,6 +14,19 @@ def mock_db_connection(monkeypatch):
     Mock global para evitar que qualquer teste tente conectar ao banco real.
     Isso substitui o motor (engine) e a sessão do SQLAlchemy por mocks.
     """
+    """
+    import os
+    # Se for teste de integração, NÃO aplicar os mocks de banco
+    if os.getenv("TEST_TYPE") == "integration":
+        return
+
+    """
+    import os
+
+    # Se for teste de integração, NÃO aplicar os mocks de banco e permitir conexão real
+    if os.getenv("TEST_TYPE") == "integration":
+        return
+
     # Mock do objeto de configurações para garantir que não use URLs reais acidentalmente
     monkeypatch.setattr("app.core.database.sync_engine", MagicMock())
     monkeypatch.setattr("app.core.database.async_engine", AsyncMock())
